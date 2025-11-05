@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="mg">
+<head>
+    <!-- Novaina ho UTF-8 ilay charset fa tsy fantatra ilay UTF-MGS -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manamboatra ny Sarinao</title>
+    <!-- Mampiditra ny Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Mampiditra ny Polisy "Inter" -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000033; /* Loko manga antitra (dark blue) */
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Animation ho an'ny lohateny miloko */
+        @keyframes color-animate {
+            0% { color: #ffab2d; }
+            25% { color: #3498db; }
+            50% { color: #e74c3c; }
+            75% { color: #2ecc71; }
+            100% { color: #ffab2d; }
+        }
+        .title-animate {
+            animation: color-animate 5s linear infinite;
+            font-weight: 900; /* Mba ho matavy be */
+        }
+
+        /* Animation mipipika (blink) */
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .blink-animate {
+            animation: blink 1.5s infinite;
+        }
+
+        /* Animation slide-up */
+        @keyframes slide-up {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .slide-up {
+            animation: slide-up 0.5s ease-out forwards;
+        }
+        
+        .slide-up-slow {
+            animation: slide-up 1s ease-out forwards;
+        }
+
+        /* Animation fisehoan'ny karatra (staggered) */
+        .card-appear {
+            opacity: 0;
+            animation: slide-up 0.5s ease-out forwards;
+        }
+
+        /* Animation flèche miakatra midina */
+        @keyframes bounce-arrow {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-15px);
+            }
+            60% {
+                transform: translateY(-7px);
+            }
+        }
+        .bounce-arrow-animate {
+            animation: bounce-arrow 2s infinite;
+            font-size: 3rem; /* Lehibe kokoa ny flèche */
+            color: #3498db;
+        }
+
+        /* Animation ho an'ny footer */
+        @keyframes background-slide {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .footer-animate {
+            background: linear-gradient(to right, #e74c3c, #ffab2d, #2ecc71, #3498db);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: background-slide 5s linear infinite;
+            font-weight: 700;
+        }
+
+        /* Fanaovana style ny textarea placeholder */
+        @keyframes blink-placeholder {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        /* Tsy maintsy atao via ::placeholder pseudo-element */
+        textarea::placeholder {
+            color: #ccc;
+            opacity: 1; /* Ataovy azo antoka fa hita */
+        }
+        textarea:focus::placeholder {
+            color: #999; /* Manjavona kely rehefa voatsindry */
+        }
+
+        /* Rehefa tsy focus ilay textarea, dia mampiasa animation isika */
+        /* Ity dia sarotra atao amin'ny CSS madio, ka ny placeholder mihitsy no ataontsika */
+        #customPrompt::placeholder {
+             animation: blink-placeholder 2s infinite;
+        }
+         #customPrompt:focus::placeholder {
+            animation: none; /* Ajanona ny animation rehefa manoratra */
+        }
+
+
+        /* Loading spinner */
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Notification style */
+        #notification {
+            transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+        }
+        
+        /* Chatbot styling */
+        #chatWindow {
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            max-height: 70vh;
+        }
+        .chat-bubble {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 20px;
+        }
+        .chat-bubble-user {
+            background-color: #3498db;
+            color: white;
+            border-bottom-right-radius: 5px;
+            align-self: flex-end;
+        }
+        .chat-bubble-model {
+            background-color: #444a50;
+            color: white;
+            border-bottom-left-radius: 5px;
+            align-self: flex-start;
+        }
+    </style>
+</head>
+<body class="p-4 pt-8 max-w-2xl mx-auto">
+
+    <!-- Lohateny -->
+    <h1 class="text-4xl md:text-5xl font-bold text-center title-animate mb-2">Manamboatra ny sarinao</h1>
+    <p class="text-center text-lg text-gray-300 mb-6 blink-animate">Tsindrio io :</p>
+
+    <!-- Bokotra Fampidirana Sary -->
+    <div class="mb-6">
+        <label for="imageUpload" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg cursor-pointer transition duration-300">
+            Alefaso eto ny sary
+        </label>
+        <input type="file" id="imageUpload" class="hidden" accept="image/*">
+    </div>
+
+    <!-- Fanehoana ny Sary Nalefa -->
+    <div id="imagePreviewContainer" class="mb-6 hidden">
+        <h3 class="text-lg font-semibold mb-2 text-gray-200">Ny sarinao:</h3>
+        <img id="imagePreview" src="" alt="Sary nalefanao" class="w-full max-w-md mx-auto rounded-lg shadow-lg">
+    </div>
+
+    <!-- Fizarana Safidy (Miafina aloha) -->
+    <div id="optionsSection" class="hidden">
+        <h2 id="optionsTitle" class="text-2xl font-bold text-center mb-6 text-gray-100 opacity-0">Safidio izay tinao hanaovana ny sarinao :</h2>
+
+        <!-- Karatra Safidy -->
+        <div id="cardGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <!-- Hiditra eto ny karatra avy amin'ny JavaScript -->
+        </div>
+
+        <!-- Fampidirana Prompt Manokana -->
+        <div>
+            <textarea id="customPrompt" rows="3"
+                class="w-full p-4 bg-gray-800 border-2 border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all duration-300"
+                placeholder="Soraty eto izay tinao hanaovana ny sarinao"></textarea>
+        </div>
+    </div>
+
+    <!-- Bokotra "Ataovy" (Miafina aloha) -->
+    <button id="generateButton" class="hidden w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-xl mt-6 transition duration-300 shadow-lg">
+        Ataovy
+    </button>
+
+    <!-- Fizarana Fanehoana ny Sary Vita -->
+    <div class="mt-10">
+        <div id="loadingIndicator" class="hidden flex flex-col items-center justify-center p-6">
+            <div class="loader"></div>
+            <p class="text-lg mt-4 text-gray-300">Andraso kely, eo am-pamitana...</p>
+        </div>
+
+        <div id="resultContainer" class="text-center">
+            <h2 id="resultPlaceholder" class="text-xl text-gray-400 border-2 border-dashed border-gray-600 p-10 rounded-lg">
+                Ny sary vita dia miseho eto
+            </h2>
+            <img id="resultImage" src="" alt="Sary vita" class="hidden w-full max-w-md mx-auto rounded-lg shadow-lg">
+
+            <!-- Bokotra "ALAIKO" sy Flèche (Miafina aloha) -->
+            <div id="downloadSection" class="hidden mt-6 flex flex-col items-center">
+                <div id="arrowAnimator" class="bounce-arrow-animate">
+                    <span>&#x21E9;</span> <!-- Flèche midina -->
+                </div>
+                <button id="downloadButton" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-full text-lg transition duration-300 shadow-lg">
+                    ALAIKO
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center mt-12 py-4">
+        <a href="https://www.facebook.com/zany.tfranklin" target="_blank" rel="noopener noreferrer" class="text-lg footer-animate">
+            Pejy noforonin'i Zany Francklin
+        </a>
+    </footer>
+    
+    <!-- Notification -->
+    <div id="notification" class="fixed bottom-5 right-5 bg-green-500 text-white py-3 px-6 rounded-lg shadow-lg opacity-0 transform translate-y-10">
+        EFA MAKA AZY!
+    </div>
+
+    <!-- Chatbot -->
+    <div id="chatContainer" class="fixed bottom-20 right-5 z-40">
+        <button id="chatToggleButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-4 rounded-full shadow-lg transition-transform duration-300 hover:scale-110">
+            Ndao hiresaka
+        </button>
+    </div>
+
+    <div id="chatWindow" class="fixed bottom-5 right-5 w-full max-w-md bg-gray-900 rounded-lg shadow-2xl p-4 transform translate-y-full opacity-0 z-30 flex flex-col" style="height: 500px;">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-white">Zany Francklin (AI)</h3>
+            <button id="closeChatButton" class="text-gray-400 hover:text-white">&times;</button>
+        </div>
+        <div id="chatLog" class="flex-1 overflow-y-auto p-2 bg-gray-800 rounded-lg mb-4 flex flex-col space-y-3">
+            <!-- Hiditra eto ny resaka -->
+        </div>
+        <div class="flex">
+            <input type="text" id="chatInput" class="flex-1 bg-gray-700 text-white p-3 rounded-l-lg focus:outline-none" placeholder="Soraty eto ny hafatrao...">
+            <button id="sendChatButton" class="bg-blue-600 text-white p-3 rounded-r-lg">Alefa</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- API KEY SY URL NIALA ---
+        // Tsy apetraka eto intsony ny API keys fa any amin'ny Netlify Functions
+        // Tsy ilaina intsony ireto:
+        // const GEMINI_API_KEY = "AIzaSyAp7-Ppj7TvpETTwPoevcUcIdb9tgouZYY";
+        // const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+        
+        // --- Fanamarihana momba ny API ---
+        console.log("Fanamarihana: Niova ity pejy ity mba hampiasa Netlify Functions.");
+        console.log("Ny antso API izao dia mandalo amin'ny '/.netlify/functions/' mba hiarovana ny API Keys.");
+
+        // --- Ireo Prompt ho an'ny Karatra ---
+        const presetPrompts = [
+            { id: "piscine", title: "ANATY PISCINE", prompt: "Generate this person in photo i sent .The photograph is a portrait of a this person with her head and shoulders above the water in a swimming pool. Original face and expression . Water droplets cling to her natural. Other droplets are falling from her hair and chin, creating small ripples on the surface of the water around her shoulders. The background is slightly out of focus, showing the edge of the pool and a light-colored wall or building. The lighting is bright and appears to be natural sunlight." },
+            { id: "omby", title: "MITAINGINA OMBY", prompt: "Generate this person in photo i sent to: Add a cow to the picture. Make the person in the picture ride the cow.And make to holding a decorative plaque with the large text \"INONA ZAO E\" written on it, and the writing is very elegant." },
+            { id: "poster", title: "POSTER", prompt: "Generate this person in photo i sent to follow : \"A highly detailed, cinematic movie poster (cinematic title:ZFZF)featuring a person protagonist in a sleek black suit and white shirt, with a bow tie. This person is in the middle of an explosive action sequence.Make same face (don't edit face shape). The background is engulfed in bright orange and yellow flames, with numerous shell casings flying through the air. The person holds a handgun in each hand, pointing them outward. The lighting is dramatic and fiery, casting intense highlights and deep shadows on person face and clothing. The composition is dynamic, with a low-angle shot that emphasizes his powerful stance. The overall style is a blend of modern action and classic spy thrillers.\"" },
+            { id: "rano", title: "MATORY ANATY RANO", prompt: "Generate this person in photo i sent to lying on a wet, flat surface, partially submerged in water. The water reflects her body and the surrounding environment, creating a mirrored image below her. The setting appears to be a natural body of water, possibly a lake or a shallow river, with a green background that is slightly out of focus. Person face not changed and not edited." },
+            { id: "manidina", title: "MANIDINA HIANATRA", prompt: "Generate this person in photo i sent to flying through a cloudy sky .This person wearing a blue backpack, and a few loose pages are fluttering from the book. The background consists of a bright, yellowish-orange sky with scattered clouds on the left, transitioning to a darker, more stormy blue and gray on the right. The overall tone of the image is one of imagination, wonder, and the power of reading.Her hair and clothes are blowing in the strong wind. Person face not changed .Real environment ." },
+            { id: "pilote", title: "PILOTE AVION", prompt: "Generate photo of this person in photo i sent : A head-and-shoulders, eye-level, close-up shot of a young, light-skinned woman with brown, curly hair streaked with blonde. This person is wearing a white pilot's shirt with epaulets on the shoulders. On her head, she wears a headset with a microphone extending to her mouth, and she rests her right hand on her cheek, looking directly at the camera. In the background, the cockpit of an aircraft is visible, showing various flight instruments and screens, with a cloudy sky through the windshield. The overall lighting is soft and natural." },
+            { id: "filoha", title: "FILOHAM-PIRENENA", prompt: "Generate photo of the person in photo i sent to: This is a portrait of a this person in photo uploaded, likely a high-ranking official or President, based on his attire and the background. Description of the Subject and Attire. This person is dressed in a formal black jacket with an embroidered or decorative high collar. Across his chest, he is wearing a sash with the colors of the Malagasy flag: red, white, and green. This person also has a chain of office around his neck, which features intricate, golden links. This person is looking directly at the camera with a slight, composed smile.Behind the subject is a large, golden circular emblem or seal. The text on the emblem, although slightly obscured, appears to be in French/Malagasy and includes the phrase \"REPOBLIKAN'I MADAGASIKARA\" (Republic of Madagascar), confirming his connection to the nation. To the lower left, a portion of a flag, likely the Malagasy flag, is visible, showing the red and white bands. In summary, the photo is a formal, official portrait of this person , the President of Madagascar, complete with national symbols and ceremonial regalia." },
+            { id: "zeeo", title: "Ze eo", prompt: "Generate photo of this person in photo i sent to random pose and random environment and random expression and random outfit match of it , make the person a funny and comedian" }
+        ];
+
+        // --- Fari-piainana (State Variables) ---
+        let uploadedImageBase64 = null;
+        let selectedPrompt = null;
+        let activeCard = null;
+        let isGenerating = false;
+        let isChatOpen = false;
+        let chatHistory = []; // Hitehirizana ny resaka
+
+        // --- DOM Elements ---
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const optionsSection = document.getElementById('optionsSection');
+        const optionsTitle = document.getElementById('optionsTitle');
+        const cardGrid = document.getElementById('cardGrid');
+        const customPrompt = document.getElementById('customPrompt');
+        const generateButton = document.getElementById('generateButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const resultContainer = document.getElementById('resultContainer');
+        const resultPlaceholder = document.getElementById('resultPlaceholder');
+        const resultImage = document.getElementById('resultImage');
+        const downloadSection = document.getElementById('downloadSection');
+        const downloadButton = document.getElementById('downloadButton');
+        const notification = document.getElementById('notification');
+        
+        // Chatbot DOM
+        const chatToggleButton = document.getElementById('chatToggleButton');
+        const chatWindow = document.getElementById('chatWindow');
+        const closeChatButton = document.getElementById('closeChatButton');
+        const chatLog = document.getElementById('chatLog');
+        const chatInput = document.getElementById('chatInput');
+        const sendChatButton = document.getElementById('sendChatButton');
+
+        // --- Mpanaraka Hetsika (Event Listeners) ---
+
+        // Fampidirana sary
+        imageUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadedImageBase64 = e.target.result;
+                imagePreview.src = uploadedImageBase64;
+                imagePreviewContainer.classList.remove('hidden');
+                
+                // Alefaso ny animation fisehoan'ny safidy
+                showOptionsAnimation();
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Fisehoan'ny safidy miaraka amin'ny animation
+        function showOptionsAnimation() {
+            optionsSection.classList.remove('hidden');
+            
+            // 1. Fisehoan'ny lohateny
+            optionsTitle.classList.add('slide-up');
+            optionsTitle.style.opacity = 1;
+
+            // 2. Fisehoan'ny karatra (tsirairay)
+            cardGrid.innerHTML = ''; // Diovina aloha
+            presetPrompts.forEach((item, index) => {
+                const card = document.createElement('button');
+                card.innerText = item.title;
+                card.dataset.prompt = item.prompt;
+                card.dataset.id = item.id;
+                card.className = "card-appear p-4 bg-gray-700 hover:bg-blue-600 rounded-lg text-white font-semibold transition duration-300 transform hover:scale-105";
+                card.style.animationDelay = `${index * 100}ms`; // 100ms no nataoko fa tsy 500ms mba haingana kokoa
+                
+                card.addEventListener('click', () => handleCardClick(card, item.prompt));
+                
+                cardGrid.appendChild(card);
+            });
+            
+            // 3. Fisehoan'ny boaty fanoratana
+            customPrompt.parentElement.classList.add('slide-up-slow');
+            customPrompt.parentElement.style.animationDelay = `${presetPrompts.length * 100}ms`;
+        }
+        
+        // Fitantanana ny tsindry amin'ny karatra
+        function handleCardClick(clickedCard, prompt) {
+            // Esory ny style amin'ilay karatra teo aloha
+            if (activeCard) {
+                activeCard.classList.remove('bg-blue-700', 'ring-2', 'ring-white');
+                activeCard.classList.add('bg-gray-700');
+            }
+            
+            // Ampio style ilay karatra voatsindry
+            clickedCard.classList.add('bg-blue-700', 'ring-2', 'ring-white');
+            clickedCard.classList.remove('bg-gray-700');
+            activeCard = clickedCard;
+            
+            selectedPrompt = prompt;
+            customPrompt.value = ''; // Diovina ny custom prompt
+            showGenerateButton();
+        }
+
+        // Fisehoan'ny bokotra "Ataovy"
+        function showGenerateButton() {
+            generateButton.classList.remove('hidden');
+            generateButton.classList.add('slide-up');
+        }
+
+        // Fampidirana prompt manokana
+        customPrompt.addEventListener('input', () => {
+            if (customPrompt.value.trim() !== '') {
+                // Esory ny safidy amin'ny karatra
+                if (activeCard) {
+                    activeCard.classList.remove('bg-blue-700', 'ring-2', 'ring-white');
+                    activeCard.classList.add('bg-gray-700');
+                    activeCard = null;
+                }
+                selectedPrompt = null; // Atao null satria custom no ampiasaina
+                showGenerateButton();
+            } else {
+                generateButton.classList.add('hidden');
+            }
+        });
+        
+        // Fihitaran'ny textarea
+        customPrompt.addEventListener('focus', () => {
+            customPrompt.rows = 6; // Mihitatra rehefa voatsindry
+        });
+        customPrompt.addEventListener('blur', () => {
+            if(customPrompt.value.trim() === '') {
+                customPrompt.rows = 3; // Miverina kely
+            }
+        });
+
+        // Tsindry amin'ny bokotra "Ataovy"
+        generateButton.addEventListener('click', () => {
+            if (isGenerating || !uploadedImageBase64) return;
+            
+            // Asehoy ny sary vita teo aloha (raha nisy)
+            resetResultView();
+
+            if (selectedPrompt) {
+                // Raha preset no nofidiana
+                generateImage(selectedPrompt);
+            } else if (customPrompt.value.trim() !== '') {
+                // Raha custom prompt no nampiasaina
+                // Mila mandika teny sy manatsara ny prompt isika
+                translateAndEnhancePrompt(customPrompt.value.trim());
+            } else {
+                // Tsy tokony ho tonga eto intsony
+                console.warn("Bokotra 'Ataovy' voatsindry nefa tsy nisy prompt");
+            }
+        });
+
+        // Fandikana sy fanatsarana ny prompt (Miantso ny Netlify Function)
+        async function translateAndEnhancePrompt(userText) {
+            console.log("Mandika sy manatsara ny prompt (via Netlify Function)...");
+            setLoading(true);
+            
+            const systemPrompt = "You are a translation and prompt-enhancement assistant. The user will provide text, likely in Malagasy or French. First, translate it to English. Second, enhance the English translation to be a rich, descriptive prompt for an AI image generator, focusing on visual details. Only return the final, enhanced English prompt. DO NOT add any other text, just the prompt.";
+
+            try {
+                // --- VAOVAO ---
+                // Miantso ilay function backend
+                const response = await fetch(`/.netlify/functions/geminiChat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        // Itỳ no alefa any amin'ilay function
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        contents: [{ parts: [{ text: userText }] }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Error ${response.status}: ${errorText}`);
+                }
+
+                // Ny valiny dia JSON misy "text"
+                const result = await response.json();
+                const enhancedPrompt = result.text;
+                // --- VAOVAO TAPITRA ---
+                
+                console.log("Prompt vita tsara:", enhancedPrompt);
+                
+                // Ampiana ilay fehezanteny fototra
+                const finalPrompt = `Generate this person in photo i sent. ${enhancedPrompt}`;
+                generateImage(finalPrompt);
+
+            } catch (error) {
+                console.error("Tsy nety ny fandikana teny:", error);
+                alert("Nisy olana tamin'ny fanamboarana ny prompt-nao. Mba avereno kely azafady.");
+                setLoading(false);
+            }
+        }
+
+        // Famoronana ny Sary (Miantso ny Netlify Function)
+        async function generateImage(prompt) {
+            console.log("Manomboka mamorona sary (via Netlify Function)...", prompt);
+            setLoading(true);
+            
+            // Esory ny "data:image/jpeg;base64,"
+            const base64Data = uploadedImageBase64.split(',')[1];
+            const mimeType = uploadedImageBase64.match(/data:(image\/\w+);/)[1];
+
+            const payload = {
+                contents: [
+                    {
+                        parts: [
+                            { text: prompt },
+                            {
+                                inlineData: {
+                                    mimeType: mimeType,
+                                    data: base64Data
+                                }
+                            }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    responseModalities: ["IMAGE"]
+                }
+            };
+            
+            // --- VAOVAO ---
+            // URL mankany amin'ilay function vaovao
+            const apiUrl = `/.netlify/functions/geminiImage`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // Alefa ao anaty "payload" ilay payload teo
+                    body: JSON.stringify({ payload: payload })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Error ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+                
+                // Ny valiny dia JSON misy "imageData"
+                const generatedImageData = result.imageData;
+                // --- VAOVAO TAPITRA ---
+
+                if (generatedImageData) {
+                    const imageUrl = `data:image/png;base64,${generatedImageData}`;
+                    resultImage.src = imageUrl;
+                    resultImage.classList.remove('hidden');
+                    
+                    // Asehoy ny bokotra download afaka 2 segondra
+                    setTimeout(() => {
+                        downloadSection.classList.remove('hidden');
+                        downloadSection.classList.add('slide-up');
+                    }, 2000);
+
+                } else {
+                    throw new Error("Tsy nisy sary niverina avy tamin'ny Function.");
+                }
+
+            } catch (error) {
+                console.error("Tsy nety ny famoronana sary:", error);
+                alert("Nisy olana lehibe tamin'ny famoronana ny sary. Mety ho noho ny sary nalefanao na ny API key. Mba avereno azafady.");
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        // Mitantana ny fisehoan'ny "Loading"
+        function setLoading(isLoading) {
+            isGenerating = isLoading;
+            if (isLoading) {
+                loadingIndicator.classList.remove('hidden');
+                resultPlaceholder.classList.add('hidden');
+                generateButton.disabled = true;
+                generateButton.innerText = "Eo am-panaovana...";
+                // Midina ho azy any amin'ny loading
+                window.scrollTo({
+                    top: resultContainer.offsetTop,
+                    behavior: 'smooth'
+                });
+            } else {
+                loadingIndicator.classList.add('hidden');
+                generateButton.disabled = false;
+                generateButton.innerText = "Ataovy";
+            }
+        }
+        
+        // Mamerina ny fanehoana ny sary vita
+        function resetResultView() {
+            resultImage.src = "";
+            resultImage.classList.add('hidden');
+            resultPlaceholder.classList.remove('hidden');
+            downloadSection.classList.add('hidden');
+        }
+
+        // Tsindry amin'ny bokotra "ALAIKO"
+        downloadButton.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.href = resultImage.src;
+            link.download = 'sary-voadika.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Asehoy ny notification
+            showNotification("EFA MAKA AZY!");
+        });
+        
+        // Fanehoana notification
+        function showNotification(message) {
+            notification.innerText = message;
+            notification.classList.remove('opacity-0', 'translate-y-10');
+            notification.classList.add('opacity-100', 'translate-y-0');
+            
+            setTimeout(() => {
+                notification.classList.remove('opacity-100', 'translate-y-0');
+                notification.classList.add('opacity-0', 'translate-y-10');
+            }, 3000);
+        }
+        
+        // --- CHATBOT Logic ---
+        
+        chatToggleButton.addEventListener('click', toggleChat);
+        closeChatButton.addEventListener('click', toggleChat);
+
+        function toggleChat() {
+            isChatOpen = !isChatOpen;
+            if (isChatOpen) {
+                chatWindow.classList.remove('translate-y-full', 'opacity-0');
+                chatWindow.classList.add('translate-y-0', 'opacity-100');
+                chatToggleButton.classList.add('opacity-0', 'scale-0'); // Afenina ilay bokotra boribory
+                
+                // Raha vao sambany no misokatra, alefaso ny fiarahabana
+                if (chatHistory.length === 0) {
+                    sendInitialGreeting();
+                }
+            } else {
+                chatWindow.classList.add('translate-y-full', 'opacity-0');
+                chatWindow.classList.remove('translate-y-0', 'opacity-100');
+                chatToggleButton.classList.remove('opacity-0', 'scale-0');
+            }
+        }
+
+        async function sendInitialGreeting() {
+            const greeting = "Manao ahoana e, Zany Francklin ihany , ao tsara ve isika eto amin'ny commune TSINJOARIVO IMANGA, milay tsika eh😆";
+            const followUp = "Mpampianatra ve ianao?";
+            
+            addMessageToChatLog(greeting, 'model');
+            
+            // Miantso ny AI mba handefa ny fanontaniana
+            // Izay no ataoko mba hitazona ny contexte
+            chatHistory = [
+                { role: "model", parts: [{ text: greeting }] }
+            ];
+            
+            // Ataovy delay kely ny fanontaniana
+            setTimeout(() => {
+                 addMessageToChatLog(followUp, 'model');
+                 chatHistory.push({ role: "model", parts: [{ text: followUp }] });
+            }, 1000);
+        }
+        
+        sendChatButton.addEventListener('click', sendChatMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+
+        function sendChatMessage() {
+            const message = chatInput.value.trim();
+            if (message === '') return;
+
+            addMessageToChatLog(message, 'user');
+            chatHistory.push({ role: "user", parts: [{ text: message }] });
+            chatInput.value = '';
+            
+            getAIResponse();
+        }
+
+        async function getAIResponse() {
+            // System prompt mitazona ny contexte momba ny fitokonana
+            const systemPrompt = "Ianao dia Zany Francklin, chatbot sariaka avy any Tsinjoarivo Imanga. Ny resakao dia tokony hifantoka amin'ny fiainana andavanandro. Raha vao manomboka ny resaka dia efa nanontany ianao hoe 'Mpampianatra ve ianao?'. Raha mamaly ny mpampiasa hoe 'ENY' na teny mitovy hevitra amin'izany, dia TSY MAINTSY manontany ianao hoe: 'De ahoana ity fitakiana ataon-tsika Mpampianatra ity?'. Fantaro fa misy grevy ny mpampianatra eto Madagasikara (Tsinjoarivo Imanga, Tsiroanomandidy, Ankadinondry Sakay) noho ny fitakiana karama sy fampidirana mpiasam-panjakana. Omeo teny fankaherezana sy firaisan-kina izy ireo. Raha 'TSIA' ny valiny, dia avadiho amin'ny resaka hafa (ohatra: 'Milay, ka inona no mahaliana anao eto amin'ny pejy?'). Valio foana amin'ny teny Malagasy."
+
+            try {
+                // --- VAOVAO ---
+                const response = await fetch(`/.netlify/functions/geminiChat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        contents: chatHistory
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Error ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+                const aiMessage = result.text;
+                // --- VAOVAO TAPITRA ---
+                
+                addMessageToChatLog(aiMessage, 'model');
+                chatHistory.push({ role: "model", parts: [{ text: aiMessage }] });
+
+            } catch (error) {
+                console.error("Tsy nety ny resaka chatbot:", error);
+                addMessageToChatLog("Miala tsiny, nisy olana kely tamin'ny fifandraisana. Andramo afaka fotoana fohy.", 'model');
+            }
+        }
+
+        function addMessageToChatLog(message, sender) {
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-model'}`;
+            bubble.innerText = message;
+            chatLog.appendChild(bubble);
+            chatLog.scrollTop = chatLog.scrollHeight; // Midina ho azy
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Ity fichier ity dia milaza amin'i Netlify
+# hoe aiza no ahitana ireo "Functions"
+
+[build]
+  # Ny toerana misy ireo functions
+  functions = "netlify/functions/"
